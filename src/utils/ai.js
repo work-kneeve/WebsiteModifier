@@ -1,8 +1,15 @@
+function getLanguageModel(win = window) {
+  if (!win.ai) return null;
+  if (win.ai.languageModel) return win.ai.languageModel;
+  if (win.ai.assistant) return win.ai.assistant;
+  return null;
+}
+
 export async function checkCapabilities() {
-  // First check if the extension context has it
-  if (window.ai && window.ai.languageModel) {
+  const localAI = getLanguageModel(window);
+  if (localAI) {
     try {
-      const capabilities = await window.ai.languageModel.capabilities();
+      const capabilities = await localAI.capabilities();
       if (capabilities.available === 'no') {
         return { supported: false, reason: "Hardware not supported or API not ready." };
       }
@@ -12,7 +19,6 @@ export async function checkCapabilities() {
     }
   }
 
-  // Fallback: Check if the active tab has it (Extension contexts sometimes block experimental APIs)
   try {
     // eslint-disable-next-line no-undef
     const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
@@ -22,9 +28,10 @@ export async function checkCapabilities() {
     const results = await chrome.scripting.executeScript({
       target: { tabId: tab.id },
       func: async () => {
-        if (!window.ai || !window.ai.languageModel) return { supported: false, reason: "No window.ai.languageModel API found." };
+        const aiModel = (!window.ai) ? null : (window.ai.languageModel || window.ai.assistant);
+        if (!aiModel) return { supported: false, reason: "No window.ai API found." };
         try {
-          const cap = await window.ai.languageModel.capabilities();
+          const cap = await aiModel.capabilities();
           if (cap.available === 'no') return { supported: false, reason: "Hardware not supported (available=no)" };
           return { supported: true, available: cap.available };
         } catch (e) {
@@ -42,7 +49,7 @@ export async function checkCapabilities() {
     return { supported: false, reason: "Fallback check failed: " + err.message };
   }
 
-  return { supported: false, reason: "No window.ai.languageModel API found." };
+  return { supported: false, reason: "No window.ai API found." };
 }
 
 export async function generateCode(promptText) {
@@ -52,9 +59,9 @@ Do not wrap the code in Markdown formatting or backticks (like \`\`\`javascript)
 Do not include any explanations.
 Just the raw JavaScript code.`;
 
-  // Try local first
-  if (window.ai && window.ai.languageModel) {
-    const session = await window.ai.languageModel.create({ systemPrompt });
+  const localAI = getLanguageModel(window);
+  if (localAI) {
+    const session = await localAI.create({ systemPrompt });
     try {
       const result = await session.prompt(promptText);
       return cleanResponse(result);
@@ -63,15 +70,15 @@ Just the raw JavaScript code.`;
     }
   }
 
-  // Fallback to active tab
   // eslint-disable-next-line no-undef
   const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
   // eslint-disable-next-line no-undef
   const results = await chrome.scripting.executeScript({
     target: { tabId: tab.id },
     func: async (userPrompt, sysPrompt) => {
-      if (!window.ai || !window.ai.languageModel) throw new Error("API missing in tab.");
-      const session = await window.ai.languageModel.create({ systemPrompt: sysPrompt });
+      const aiModel = (!window.ai) ? null : (window.ai.languageModel || window.ai.assistant);
+      if (!aiModel) throw new Error("API missing in tab.");
+      const session = await aiModel.create({ systemPrompt: sysPrompt });
       try {
         return await session.prompt(userPrompt);
       } finally {
