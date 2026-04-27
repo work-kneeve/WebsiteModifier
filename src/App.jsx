@@ -1,22 +1,65 @@
 import { useState, useEffect } from 'react';
-import { checkCapabilities, generateCode } from './utils/ai';
+import { generateCode } from './utils/ai';
 import { executeInActiveTab } from './utils/executor';
 
 function App() {
-  const [capabilities, setCapabilities] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [apiKey, setApiKey] = useState('');
+  const [hasKey, setHasKey] = useState(false);
   const [prompt, setPrompt] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
   const [toastMessage, setToastMessage] = useState('');
 
   useEffect(() => {
-    async function init() {
-      const result = await checkCapabilities();
-      setCapabilities(result);
+    // eslint-disable-next-line no-undef
+    if (typeof chrome !== 'undefined' && chrome.storage) {
+      // eslint-disable-next-line no-undef
+      chrome.storage.local.get(['geminiApiKey'], (result) => {
+        if (result.geminiApiKey) {
+          setApiKey(result.geminiApiKey);
+          setHasKey(true);
+        }
+        setLoading(false);
+      });
+    } else {
+      // Fallback for non-extension environments (e.g. local dev server)
+      const stored = localStorage.getItem('geminiApiKey');
+      if (stored) {
+        setApiKey(stored);
+        setHasKey(true);
+      }
       setLoading(false);
     }
-    init();
   }, []);
+
+  const saveKey = () => {
+    if (!apiKey.trim()) return;
+    // eslint-disable-next-line no-undef
+    if (typeof chrome !== 'undefined' && chrome.storage) {
+      // eslint-disable-next-line no-undef
+      chrome.storage.local.set({ geminiApiKey: apiKey.trim() }, () => {
+        setHasKey(true);
+      });
+    } else {
+      localStorage.setItem('geminiApiKey', apiKey.trim());
+      setHasKey(true);
+    }
+  };
+
+  const clearKey = () => {
+    // eslint-disable-next-line no-undef
+    if (typeof chrome !== 'undefined' && chrome.storage) {
+      // eslint-disable-next-line no-undef
+      chrome.storage.local.remove(['geminiApiKey'], () => {
+        setApiKey('');
+        setHasKey(false);
+      });
+    } else {
+      localStorage.removeItem('geminiApiKey');
+      setApiKey('');
+      setHasKey(false);
+    }
+  };
 
   const showToast = (message) => {
     setToastMessage(message);
@@ -24,15 +67,15 @@ function App() {
   };
 
   const handleApply = async () => {
-    if (!prompt.trim()) return;
+    if (!prompt.trim() || !hasKey) return;
     
     setIsGenerating(true);
     try {
-      const code = await generateCode(prompt);
+      const code = await generateCode(prompt, apiKey);
       await executeInActiveTab(code);
     } catch (error) {
       console.error(error);
-      showToast("Try rephrasing your request");
+      showToast(error.message || "Try rephrasing your request");
     } finally {
       setIsGenerating(false);
       setPrompt('');
@@ -51,29 +94,36 @@ function App() {
     );
   }
 
-  if (!capabilities?.supported) {
+  if (!hasKey) {
     return (
       <div className="p-6 h-screen bg-background text-text flex flex-col justify-center">
-        <div className="bg-surface border border-red-500/30 p-6 rounded-xl shadow-lg backdrop-blur-sm text-center">
-          <div className="text-red-400 mb-4 flex justify-center">
+        <div className="bg-surface border border-slate-700 p-6 rounded-xl shadow-lg text-center">
+          <div className="text-primary mb-4 flex justify-center">
             <svg xmlns="http://www.w3.org/2000/svg" className="h-12 w-12" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
             </svg>
           </div>
-          <h2 className="text-xl font-bold mb-2">Hardware Not Supported</h2>
-          <p className="text-sm text-red-300 font-mono bg-red-900/20 p-2 rounded mb-4">
-            Error: {capabilities?.reason || "Unknown API Error"}
-          </p>
+          <h2 className="text-xl font-bold mb-2">Gemini API Key</h2>
           <p className="text-sm text-text-muted mb-4">
-            SiteMorph requires the Gemini Nano (Prompt API) to function locally.
+            SiteMorph uses Google's powerful Gemini Cloud API. Get your free key from Google AI Studio.
           </p>
-          <div className="bg-background/50 rounded p-4 text-left text-xs text-text-muted space-y-2">
-            <p>1. Ensure Chrome version is 140+</p>
-            <p>2. Go to <code>chrome://flags</code></p>
-            <p>3. Enable <b>#prompt-api-for-gemini-nano</b></p>
-            <p>4. Enable <b>#optimization-guide-on-device-model</b></p>
-            <p>5. Restart Chrome</p>
-          </div>
+          <input
+            type="password"
+            value={apiKey}
+            onChange={(e) => setApiKey(e.target.value)}
+            placeholder="AIzaSy..."
+            className="w-full bg-background border border-slate-700 rounded-lg p-3 text-sm focus:outline-none focus:border-primary transition-all mb-4 text-center"
+          />
+          <button
+            onClick={saveKey}
+            disabled={!apiKey.trim()}
+            className="w-full bg-primary hover:bg-primary-hover text-white font-medium py-3 px-4 rounded-xl transition-all disabled:opacity-50"
+          >
+            Save Key
+          </button>
+          <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noreferrer" className="block mt-4 text-xs text-primary hover:underline">
+            Get a free API key here &rarr;
+          </a>
         </div>
       </div>
     );
@@ -86,9 +136,11 @@ function App() {
           <h1 className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-primary to-purple-400">
             SiteMorph
           </h1>
-          <p className="text-xs text-text-muted">Community Edition</p>
+          <p className="text-xs text-text-muted">Cloud Edition</p>
         </div>
-        <div className="h-2 w-2 rounded-full bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.6)] animate-pulse" title="Gemini Nano Active"></div>
+        <button onClick={clearKey} className="text-xs text-slate-500 hover:text-red-400 transition-colors" title="Clear API Key">
+          Clear Key
+        </button>
       </header>
 
       <main className="flex-1 flex flex-col gap-4">
