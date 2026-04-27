@@ -1,0 +1,6 @@
+{
+  "appDesc": {
+    "message": "All processing is done locally on-device via Gemini Nano. No data leaves the browser.",
+    "description": "The description of the application"
+  }
+}
