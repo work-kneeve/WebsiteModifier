@@ -16,16 +16,33 @@ export async function executeInActiveTab(code) {
   const results = await chrome.scripting.executeScript({
     target: { tabId: tab.id },
     func: (scriptCode) => {
-      try {
-        // Wrap the generated code in a safe executor
-        const execute = new Function(scriptCode);
-        execute();
-        return { success: true };
-      } catch (err) {
-        return { success: false, error: err.message };
-      }
+      return new Promise((resolve) => {
+        try {
+          const script = document.createElement('script');
+          script.textContent = `
+            try {
+              ${scriptCode}
+              document.dispatchEvent(new CustomEvent('SiteMorphSuccess'));
+            } catch (e) {
+              document.dispatchEvent(new CustomEvent('SiteMorphError', { detail: e.message }));
+            }
+          `;
+          
+          const onSuccess = () => resolve({ success: true });
+          const onError = (e) => resolve({ success: false, error: e.detail });
+          
+          document.addEventListener('SiteMorphSuccess', onSuccess, { once: true });
+          document.addEventListener('SiteMorphError', onError, { once: true });
+          
+          (document.head || document.documentElement).appendChild(script);
+          script.remove();
+        } catch (err) {
+          resolve({ success: false, error: err.message });
+        }
+      });
     },
-    args: [code]
+    args: [code],
+    world: 'MAIN'
   });
 
   if (results && results[0] && results[0].result) {
