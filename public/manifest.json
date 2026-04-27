@@ -14,5 +14,11 @@
   ],
   "side_panel": {
     "default_path": "index.html"
+  },
+  "action": {
+    "default_title": "Open SiteMorph"
+  },
+  "background": {
+    "service_worker": "background.js"
   }
 }
