@@ -54,14 +54,26 @@ export async function executeInActiveTab(code) {
 
           script.textContent = finalCode;
           
-          const onSuccess = () => resolve({ success: true });
-          const onError = (e) => resolve({ success: false, error: e.detail });
+          let resolved = false;
+          const onSuccess = () => { if(!resolved){ resolved=true; resolve({ success: true }); } };
+          const onError = (e) => { if(!resolved){ resolved=true; resolve({ success: false, error: e?.detail || 'Unknown script error' }); } };
           
           document.addEventListener('SiteMorphSuccess', onSuccess, { once: true });
           document.addEventListener('SiteMorphError', onError, { once: true });
           
           (document.head || document.documentElement).appendChild(script);
           script.remove();
+
+          // Fallback timeout in case CSP completely blocks the script execution silently
+          setTimeout(() => {
+            if (!resolved) {
+              resolved = true;
+              document.removeEventListener('SiteMorphSuccess', onSuccess);
+              document.removeEventListener('SiteMorphError', onError);
+              resolve({ success: false, error: "Execution blocked by strict website security (CSP)." });
+            }
+          }, 2000);
+
         } catch (err) {
           resolve({ success: false, error: err.message });
         }
