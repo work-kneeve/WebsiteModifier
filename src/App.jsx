@@ -61,6 +61,9 @@ function App() {
             </svg>
           </div>
           <h2 className="text-xl font-bold mb-2">Hardware Not Supported</h2>
+          <p className="text-sm text-red-300 font-mono bg-red-900/20 p-2 rounded mb-4">
+            Error: {capabilities?.reason || "Unknown API Error"}
+          </p>
           <p className="text-sm text-text-muted mb-4">
             SiteMorph requires the Gemini Nano (Prompt API) to function locally.
           </p>
