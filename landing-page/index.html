@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SiteMorph - Community Edition</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+    </style>
+</head>
+<body class="bg-slate-900 text-white min-h-screen flex flex-col font-sans">
+    <div class="flex-grow flex flex-col items-center justify-center p-6 text-center max-w-3xl mx-auto">
+        <div class="mb-8">
+            <h1 class="text-5xl md:text-6xl font-extrabold mb-4 bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-purple-500">
+                SiteMorph
+            </h1>
+            <p class="text-xl text-slate-300 font-medium mb-2">Community Edition</p>
+            <p class="text-slate-400 text-lg max-w-xl mx-auto">
+                Modify any website using natural language. Powered locally on your device by Gemini Nano.
+            </p>
+        </div>
+
+        <div class="bg-slate-800 p-8 rounded-2xl border border-slate-700 shadow-2xl w-full">
+            <a href="sitemorph-extension.zip" download
+               class="inline-block bg-blue-500 hover:bg-blue-600 text-white text-lg font-bold py-4 px-8 rounded-full shadow-[0_0_15px_rgba(59,130,246,0.5)] hover:shadow-[0_0_25px_rgba(59,130,246,0.7)] transition-all transform hover:-translate-y-1 mb-8">
+                Download Extension (.zip)
+            </a>
+
+            <div class="text-left bg-slate-900 p-6 rounded-xl border border-slate-700">
+                <h3 class="text-xl font-bold mb-4 text-slate-200 border-b border-slate-700 pb-2">How to Install</h3>
+                <ol class="list-decimal list-inside space-y-3 text-slate-400">
+                    <li>Extract the downloaded <code>sitemorph-extension.zip</code> file.</li>
+                    <li>Open Google Chrome and navigate to <code class="bg-slate-800 px-2 py-1 rounded text-blue-400">chrome://extensions/</code></li>
+                    <li>Toggle <strong>Developer mode</strong> ON (top right corner).</li>
+                    <li>Click <strong>Load unpacked</strong> and select the extracted folder.</li>
+                </ol>
+                
+                <div class="mt-6 p-4 bg-blue-900/30 border border-blue-800 rounded-lg text-sm text-blue-200">
+                    <strong>Note:</strong> You must have Chrome 140+ with the Prompt API enabled via <code>chrome://flags</code> for the local AI to work. No data leaves your browser.
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <footer class="text-center p-6 border-t border-slate-800 text-slate-500 text-sm">
+        &copy; 2026 SiteMorph Community Edition. Open Source & Privacy First.
+    </footer>
+</body>
+</html>
